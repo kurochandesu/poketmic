@@ -8,7 +8,7 @@ const app = express();
 app.use(express.static(__dirname));
 
 const server = http.createServer(app);
-const io = new Server(server, {h
+const io = new Server(server, {
   maxHttpBufferSize: 2e7,
   pingTimeout: 10000,
   pingInterval: 5000,
