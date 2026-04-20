@@ -8,7 +8,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#0a0a1a;color:#fff;height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none}
-
+h
 /* ===== SETUP ===== */
 #setup{width:100%;max-width:400px;padding:28px}
 #setup h1{font-size:24px;font-weight:800;text-align:center;margin-bottom:6px}
@@ -118,9 +118,9 @@ socket.on('disconnect',()=>{
 async function initAudio(){
   try{
     stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
-    actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:44100});
+    actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
     src=actx.createMediaStreamSource(stream);
-    proc=actx.createScriptProcessor(4096,1,1);
+    proc=actx.createScriptProcessor(8192,1,1);
     src.connect(proc); proc.connect(actx.destination);
     proc.onaudioprocess=e=>{
       if(!talking||muted)return;
