@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PoketMic - 証明書インストール</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#0a0a1a;color:#fff;min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center}
+h1{font-size:22px;font-weight:800;text-align:center;margin:24px 0 6px}
+.sub{color:#666;font-size:13px;text-align:center;margin-bottom:32px}
+.wrap{width:100%;max-width:440px}
+
+.dl-btn{display:block;width:100%;padding:18px;background:linear-gradient(135deg,#6c63ff,#4ecdc4);border:none;border-radius:14px;color:#fff;font-size:18px;font-weight:700;text-align:center;text-decoration:none;margin-bottom:32px;cursor:pointer}
+.dl-btn:active{opacity:.85}
+
+.tab-btns{display:flex;gap:8px;margin-bottom:20px}
+.tab-btn{flex:1;padding:10px;border:1px solid #252545;background:transparent;color:#888;border-radius:10px;font-size:14px;cursor:pointer}
+.tab-btn.active{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700}
+
+.tab{display:none}
+.tab.show{display:block}
+
+.steps{display:flex;flex-direction:column;gap:12px}
+.step{display:flex;gap:14px;align-items:flex-start;padding:14px;background:#121225;border:1px solid #1a1a35;border-radius:12px}
+.num{width:28px;height:28px;border-radius:50%;background:#6c63ff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.stxt{font-size:14px;line-height:1.6;color:#ccc}
+.stxt strong{color:#fff}
+.stxt code{background:#1a1a35;padding:2px 7px;border-radius:5px;font-size:13px;color:#4ecdc4}
+
+.next-btn{display:block;width:100%;padding:16px;background:#121225;border:1px solid rgba(108,99,255,.4);border-radius:14px;color:#6c63ff;font-size:16px;font-weight:700;text-align:center;text-decoration:none;margin-top:28px}
+.next-btn:active{opacity:.8}
+
+.note{font-size:12px;color:#444;text-align:center;margin-top:16px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔐 接続準備</h1>
+  <p class="sub">スマホからマイクを使うために<br>証明書を1度だけインストールします</p>
+
+  <!-- ダウンロードボタン -->
+  <a class="dl-btn" href="/poketmic-cert.crt" download="poketmic-cert.crt">
+    ⬇️ 証明書をダウンロード
+  </a>
+
+  <!-- タブ切り替え -->
+  <div class="tab-btns">
+    <button class="tab-btn active" onclick="showTab('ios',this)">📱 iPhone</button>
+    <button class="tab-btn" onclick="showTab('android',this)">🤖 Android</button>
+  </div>
+
+  <!-- iPhone 手順 -->
+  <div class="tab show" id="ios">
+    <div class="steps">
+      <div class="step"><div class="num">1</div><div class="stxt">上の<strong>「証明書をダウンロード」</strong>をタップ<br>→「設定にプロファイルがダウンロードされました」と表示される</div></div>
+      <div class="step"><div class="num">2</div><div class="stxt"><strong>「設定」アプリ</strong>を開く<br>→ 上部に<strong>「プロファイルがダウンロードされました」</strong>が表示されているのでタップ</div></div>
+      <div class="step"><div class="num">3</div><div class="stxt"><strong>「インストール」</strong>をタップ → パスコード入力 → 再度「インストール」→「完了」</div></div>
+      <div class="step"><div class="num">4</div><div class="stxt"><strong>設定 → 一般 → 情報 → 証明書信頼設定</strong> を開く<br>→ <code>PoketMic</code> または <code>localhost</code> のスイッチを<strong>オン</strong>にする</div></div>
+      <div class="step"><div class="num">5</div><div class="stxt">下の「マイク画面へ」ボタンをタップして接続</div></div>
+    </div>
+  </div>
+
+  <!-- Android 手順 -->
+  <div class="tab" id="android">
+    <div class="steps">
+      <div class="step"><div class="num">1</div><div class="stxt">上の<strong>「証明書をダウンロード」</strong>をタップ</div></div>
+      <div class="step"><div class="num">2</div><div class="stxt"><strong>設定 → セキュリティ → 証明書のインストール → CA証明書</strong> を開く<br>（機種により「詳細設定」内にある場合あり）</div></div>
+      <div class="step"><div class="num">3</div><div class="stxt">ダウンロードした <code>poketmic-cert.crt</code> を選択 → 「インストール」</div></div>
+      <div class="step"><div class="num">4</div><div class="stxt">下の「マイク画面へ」ボタンをタップして接続</div></div>
+    </div>
+  </div>
+
+  <a class="next-btn" href="/mic.html">🎤 マイク画面へ →</a>
+  <p class="note">この作業は同じスマホなら1度だけです<br>証明書は会場のWiFi内でのみ有効です</p>
+</div>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('show'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('show');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

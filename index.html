@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PoketMic</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#0a0a1a;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding:24px}
+h1{font-size:42px;font-weight:900;letter-spacing:3px}
+.sub{color:#555;font-size:15px;text-align:center}
+.cards{display:flex;flex-direction:column;gap:14px;width:100%;max-width:380px}
+.card{display:flex;align-items:center;gap:20px;padding:20px 24px;border-radius:16px;text-decoration:none;color:#fff;transition:transform .15s,opacity .15s}
+.card:active{transform:scale(.97);opacity:.85}
+.admin{background:linear-gradient(135deg,#1a0a3a,#0d0d2a);border:1px solid rgba(108,99,255,.4)}
+.output{background:linear-gradient(135deg,#0a1a3a,#0a0d2a);border:1px solid rgba(62,207,207,.4)}
+.mic{background:linear-gradient(135deg,#1a0a1a,#0d0a1a);border:1px solid rgba(255,68,68,.3)}
+.icon{font-size:30px;flex-shrink:0}
+.ct{font-size:17px;font-weight:700}
+.cd{font-size:12px;color:#777;margin-top:3px}
+footer{font-size:11px;color:#333}
+</style>
+</head>
+<body>
+<div style="text-align:center">
+  <h1>🎤 PoketMic</h1>
+  <p class="sub">スマホをワイヤレスマイクに変えるシステム</p>
+</div>
+<div class="cards">
+  <a href="/admin.html" class="card admin">
+    <div class="icon">⚙️</div>
+    <div><div class="ct">管理者画面</div><div class="cd">QRコード発行・参加者ミュート管理</div></div>
+  </a>
+  <a href="/output.html" class="card output">
+    <div class="icon">🔊</div>
+    <div><div class="ct">出力画面</div><div class="cd">会場PC用 — PAスピーカーに接続</div></div>
+  </a>
+  <a href="/mic.html" class="card mic">
+    <div class="icon">🎙️</div>
+    <div><div class="ct">マイク（参加者用）</div><div class="cd">スマホで開く — QRコードから自動アクセス</div></div>
+  </a>
+</div>
+<footer>PoketMic v1.0 — WiseUp Corporation</footer>
+</body>
+</html>

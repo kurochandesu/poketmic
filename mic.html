@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>PoketMic - マイク</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#0a0a1a;color:#fff;height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none}
+
+/* ===== SETUP ===== */
+#setup{width:100%;max-width:400px;padding:28px}
+#setup h1{font-size:24px;font-weight:800;text-align:center;margin-bottom:6px}
+.sub{color:#666;font-size:13px;text-align:center;margin-bottom:32px}
+.ig{margin-bottom:16px}
+label{display:block;font-size:12px;color:#888;margin-bottom:6px;letter-spacing:.5px}
+input{width:100%;padding:14px 16px;background:#141428;border:1.5px solid #252545;border-radius:12px;color:#fff;font-size:16px;outline:none}
+input:focus{border-color:#6c63ff}
+.code-input{letter-spacing:4px;font-weight:700;text-align:center;font-size:20px}
+.btn{width:100%;padding:16px;background:linear-gradient(135deg,#6c63ff,#4ecdc4);border:none;border-radius:14px;color:#fff;font-size:17px;font-weight:700;cursor:pointer;margin-top:8px}
+.btn:active{opacity:.85}
+.err{color:#ff6b6b;font-size:13px;text-align:center;margin-top:10px;min-height:20px}
+
+/* ===== MAIN ===== */
+#main{display:none;flex-direction:column;align-items:center;gap:28px;width:100%;padding:24px}
+.topbar{display:flex;align-items:center;gap:8px;font-size:13px;color:#666}
+.dot{width:8px;height:8px;border-radius:50%;background:#333;transition:background .3s}
+.dot.on{background:#4caf50}
+.dot.talk{background:#ff4444;animation:pd .6s ease-in-out infinite alternate}
+@keyframes pd{from{box-shadow:0 0 0 0 rgba(255,68,68,.6)}to{box-shadow:0 0 0 8px rgba(255,68,68,0)}}
+
+.uname{font-size:19px;font-weight:600;color:#ddd}
+
+/* PTT */
+.ring{width:220px;height:220px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(108,99,255,.08);border:2px solid rgba(108,99,255,.25);transition:all .15s}
+.ring.talking{background:rgba(255,68,68,.12);border-color:rgba(255,68,68,.4);animation:rp 1s ease-in-out infinite}
+@keyframes rp{0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,.25)}50%{box-shadow:0 0 0 24px rgba(255,68,68,0)}}
+
+#ptt{width:158px;height:158px;border-radius:50%;border:none;background:linear-gradient(135deg,#6c63ff,#4a45d0);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;transition:all .12s;box-shadow:0 8px 32px rgba(108,99,255,.4);-webkit-tap-highlight-color:transparent;touch-action:none}
+#ptt.active{transform:scale(.92);background:linear-gradient(135deg,#ff4444,#cc1111);box-shadow:0 4px 20px rgba(255,68,68,.5)}
+#ptt svg{width:46px;height:46px}
+#ptt .lbl{font-size:13px;font-weight:700;letter-spacing:1px}
+
+.vmeter{width:180px;height:5px;background:#141428;border-radius:3px;overflow:hidden}
+.vbar{height:100%;width:0%;background:linear-gradient(90deg,#4caf50,#ffeb3b,#ff4444);transition:width .05s}
+
+.hint{font-size:12px;color:#444;text-align:center}
+.muted-banner{display:none;background:rgba(255,152,0,.15);border:1px solid rgba(255,152,0,.4);border-radius:10px;padding:10px 20px;font-size:13px;color:#ffb74d;text-align:center}
+.muted-banner.show{display:block}
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <h1>🎤 PoketMic</h1>
+  <p class="sub">スマホをワイヤレスマイクに</p>
+  <div class="ig">
+    <label>ルームコード</label>
+    <input class="code-input" id="code" type="text" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
+  </div>
+  <div class="ig">
+    <label>お名前（任意）</label>
+    <input id="uname" type="text" placeholder="山田 太郎">
+  </div>
+  <button class="btn" onclick="doConnect()">接続する</button>
+  <p class="err" id="err"></p>
+</div>
+
+<div id="main">
+  <div class="topbar"><div class="dot" id="dot"></div><span id="stxt">接続中...</span></div>
+  <div class="uname" id="dname"></div>
+  <div class="ring" id="ring">
+    <button id="ptt"
+      ontouchstart="go(event)" ontouchend="stop(event)" ontouchcancel="stop(event)"
+      onmousedown="go(event)" onmouseup="stop(event)" onmouseleave="stop(event)">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zm-1 3a1 1 0 0 1 2 0v8a1 1 0 0 1-2 0V4zm7 8a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V21H8a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2h-2v-2.08A7 7 0 0 0 20 12z"/>
+      </svg>
+      <span class="lbl" id="lbl">押して話す</span>
+    </button>
+  </div>
+  <div class="vmeter"><div class="vbar" id="vbar"></div></div>
+  <div class="muted-banner" id="mbanner">🔇 主催者によりミュートされています</div>
+  <p class="hint">ボタンを押している間だけマイクがONになります</p>
+</div>
+
+<script>
+const socket = io();
+let actx, src, proc, stream, talking=false, muted=false;
+
+function doConnect(){
+  const code = document.getElementById('code').value.trim();
+  const name = document.getElementById('uname').value.trim();
+  if(!code){document.getElementById('err').textContent='ルームコードを入力してください';return;}
+  socket.emit('register',{type:'speaker',name,code});
+}
+
+socket.on('registered',({name})=>{
+  document.getElementById('setup').style.display='none';
+  const m=document.getElementById('main'); m.style.display='flex';
+  document.getElementById('dname').textContent=name;
+  document.getElementById('dot').className='dot on';
+  document.getElementById('stxt').textContent='接続済み';
+  initAudio();
+});
+socket.on('error',msg=>{ document.getElementById('err').textContent=msg; });
+socket.on('muteStatus',({muted:m})=>{
+  muted=m;
+  document.getElementById('mbanner').className='muted-banner'+(m?' show':'');
+  if(m&&talking) stop();
+});
+socket.on('disconnect',()=>{
+  document.getElementById('dot').className='dot';
+  document.getElementById('stxt').textContent='切断されました';
+});
+
+async function initAudio(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+    actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:44100});
+    src=actx.createMediaStreamSource(stream);
+    proc=actx.createScriptProcessor(4096,1,1);
+    src.connect(proc); proc.connect(actx.destination);
+    proc.onaudioprocess=e=>{
+      if(!talking||muted)return;
+      const f32=e.inputBuffer.getChannelData(0);
+      const i16=new Int16Array(f32.length);
+      let mx=0;
+      for(let i=0;i<f32.length;i++){i16[i]=Math.max(-32768,Math.min(32767,f32[i]*32768));if(Math.abs(f32[i])>mx)mx=Math.abs(f32[i]);}
+      socket.emit('audio',i16.buffer);
+      document.getElementById('vbar').style.width=Math.min(100,mx*220)+'%';
+    };
+  }catch(e){alert('マイクを許可してください\n設定 → Safari → マイク → 許可');}
+}
+
+function go(e){
+  e.preventDefault();
+  if(muted||!actx)return;
+  talking=true;
+  document.getElementById('ptt').classList.add('active');
+  document.getElementById('ring').classList.add('talking');
+  document.getElementById('lbl').textContent='話し中...';
+  document.getElementById('dot').classList.add('talk');
+  if(actx.state==='suspended')actx.resume();
+}
+function stop(e){
+  if(e)e.preventDefault();
+  if(!talking)return;
+  talking=false;
+  document.getElementById('ptt').classList.remove('active');
+  document.getElementById('ring').classList.remove('talking');
+  document.getElementById('lbl').textContent='押して話す';
+  document.getElementById('dot').classList.remove('talk');
+  document.getElementById('vbar').style.width='0%';
+  socket.emit('micOff');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PoketMic - 管理者</title>
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#0d0d1f;color:#e0e0e0;min-height:100vh;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid #1a1a35}
+header h1{font-size:20px;font-weight:700}
+.conn{display:flex;align-items:center;gap:8px;font-size:12px;color:#555}
+.cdot{width:7px;height:7px;border-radius:50%;background:#4caf50}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:680px){.grid{grid-template-columns:1fr}}
+.card{background:#121225;border:1px solid #1a1a35;border-radius:16px;padding:22px}
+.card h2{font-size:12px;font-weight:600;color:#555;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px}
+.qrwrap{display:flex;flex-direction:column;align-items:center;gap:14px}
+#qrcode{background:#fff;padding:14px;border-radius:10px}
+.rcode{font-size:38px;font-weight:900;letter-spacing:10px;color:#6c63ff;font-family:monospace}
+.rurl{font-size:11px;color:#444;word-break:break-all;text-align:center}
+.btnreset{padding:7px 18px;background:transparent;border:1px solid #252545;border-radius:8px;color:#666;font-size:12px;cursor:pointer}
+.btnreset:hover{border-color:#555;color:#ccc}
+#spklist{display:flex;flex-direction:column;gap:10px;min-height:50px}
+.sitem{display:flex;align-items:center;gap:12px;padding:11px 14px;background:#0d0d1f;border:1px solid #1a1a35;border-radius:12px;transition:border-color .2s}
+.sitem.talking{border-color:rgba(255,68,68,.45);background:rgba(255,68,68,.04)}
+.sitem.muted{opacity:.5}
+.savatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#4ecdc4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.sname{flex:1;font-size:14px}
+.sstatus{font-size:11px;color:#555}
+.sstatus.on{color:#ff5555}
+.btnmute{padding:5px 12px;border-radius:7px;border:1px solid #252545;background:transparent;color:#777;font-size:11px;cursor:pointer}
+.btnmute.muted{border-color:#ff9800;color:#ff9800}
+.empty{color:#333;font-size:13px;text-align:center;padding:16px 0}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sbox{background:#0d0d1f;border:1px solid #1a1a35;border-radius:12px;padding:14px;text-align:center}
+.sn{font-size:30px;font-weight:700;color:#6c63ff}
+.sl{font-size:11px;color:#555;margin-top:3px}
+.outlink{display:block;text-align:center;padding:13px;background:rgba(108,99,255,.06);border:1px solid rgba(108,99,255,.3);border-radius:12px;color:#6c63ff;text-decoration:none;font-size:14px;font-weight:600;margin-top:8px}
+.outlink:hover{background:rgba(108,99,255,.12)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎤 PoketMic 管理者画面</h1>
+  <div class="conn"><div class="cdot"></div><span>接続中</span></div>
+</header>
+<div class="grid">
+  <div class="card">
+    <h2>📱 参加者用 QRコード</h2>
+    <div class="qrwrap">
+      <div id="qrcode"></div>
+      <div class="rcode" id="rcode">------</div>
+      <div class="rurl" id="rurl">接続中...</div>
+      <button class="btnreset" onclick="resetRoom()">🔄 ルームコードをリセット</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>🎙️ 参加者一覧</h2>
+    <div id="spklist"><p class="empty">参加者がいません</p></div>
+  </div>
+  <div class="card">
+    <h2>📊 統計</h2>
+    <div class="sgrid">
+      <div class="sbox"><div class="sn" id="stotal">0</div><div class="sl">接続中</div></div>
+      <div class="sbox"><div class="sn" id="sactive">0</div><div class="sl">発話中</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>🔊 出力画面</h2>
+    <p style="font-size:13px;color:#555;line-height:1.6;margin-bottom:12px">会場PCで出力画面を開き、PCをスピーカー（PA）に繋いでください。</p>
+    <a class="outlink" href="/output.html" target="_blank">🔊 出力画面を別タブで開く</a>
+    <p style="font-size:11px;color:#333;margin-top:10px;text-align:center">出力画面は開いたまま閉じないでください</p>
+  </div>
+</div>
+<script>
+const socket=io();
+// QRコードはwindow.location.originから自動取得（ローカルでもクラウドでも動く）
+const baseUrl = window.location.origin;
+socket.emit('register',{type:'admin'});
+socket.on('roomInfo',({code,speakers})=>{ updateCode(code); renderList(speakers); });
+socket.on('speakerList',renderList);
+socket.on('speakerActive',({id,active})=>{
+  const el=document.getElementById('si-'+id);
+  if(!el) return;
+  el.classList.toggle('talking',active);
+  const st=el.querySelector('.sstatus');
+  if(st){st.textContent=active?'🔴 話し中':'待機中';st.className='sstatus'+(active?' on':'');}
+  document.getElementById('sactive').textContent=document.querySelectorAll('.sitem.talking').length;
+});
+function updateCode(code){
+  document.getElementById('rcode').textContent=code;
+  const url=`${baseUrl}/mic.html`;
+  document.getElementById('rurl').textContent=url;
+  document.getElementById('qrcode').innerHTML='';
+  new QRCode(document.getElementById('qrcode'),{text:url,width:176,height:176,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+}
+function renderList(list){
+  const c=document.getElementById('spklist');
+  if(!list.length){ c.innerHTML='<p class="empty">参加者がいません<br><small style="font-size:11px;color:#2a2a45">QRコードを読み取って参加してもらってください</small></p>'; document.getElementById('stotal').textContent=0; document.getElementById('sactive').textContent=0; return; }
+  c.innerHTML=list.map(s=>`<div class="sitem${s.muted?' muted':''}" id="si-${s.id}"><div class="savatar">${esc(s.name).charAt(0)}</div><div style="flex:1"><div class="sname">${esc(s.name)}</div><div class="sstatus">待機中</div></div><button class="btnmute${s.muted?' muted':''}" onclick="mute('${s.id}',${!s.muted})">${s.muted?'🔇 ミュート中':'ミュート'}</button></div>`).join('');
+  document.getElementById('stotal').textContent=list.length;
+  document.getElementById('sactive').textContent=document.querySelectorAll('.sitem.talking').length;
+}
+function mute(id,v){ socket.emit('muteSpeaker',{id,muted:v}); }
+function resetRoom(){ if(confirm('ルームコードをリセットしますか？')) socket.emit('resetRoom'); }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

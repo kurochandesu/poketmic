@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PoketMic - 音声出力</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#050510;color:#fff;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px}
+h1{font-size:30px;font-weight:800;letter-spacing:3px;text-align:center}
+.sub{color:#444;font-size:14px;text-align:center;margin-top:6px}
+#startBtn{padding:18px 56px;background:linear-gradient(135deg,#6c63ff,#4ecdc4);border:none;border-radius:50px;color:#fff;font-size:19px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:opacity .2s}
+#startBtn:disabled{opacity:.35;cursor:default}
+.badge{display:flex;align-items:center;gap:12px;padding:14px 32px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:50px}
+.bdot{width:12px;height:12px;border-radius:50%;background:#222;transition:background .2s}
+.bdot.ready{background:#4caf50;box-shadow:0 0 10px rgba(76,175,80,.7)}
+.bdot.recv{background:#2196f3;box-shadow:0 0 10px rgba(33,150,243,.7);animation:bl .4s infinite alternate}
+@keyframes bl{from{opacity:1}to{opacity:.3}}
+.vm{width:380px}
+.vlabel{font-size:11px;color:#444;margin-bottom:6px;text-align:center}
+.vtrack{height:7px;background:#111;border-radius:4px;overflow:hidden}
+.vfill{height:100%;width:0%;background:linear-gradient(90deg,#4caf50,#8bc34a,#ffeb3b,#ff9800,#ff4444);transition:width .04s}
+.stats{display:flex;gap:48px;font-size:12px;color:#444;text-align:center}
+.sv{font-size:28px;font-weight:700;color:#ccc}
+footer{position:fixed;bottom:16px;font-size:11px;color:#252535}
+</style>
+</head>
+<body>
+<div>
+  <h1>🔊 PoketMic</h1>
+  <p class="sub">音声出力モード — 会場PCをPAスピーカーに接続してお使いください</p>
+</div>
+
+<button id="startBtn" onclick="start()">▶ 出力を開始</button>
+
+<div class="badge">
+  <div class="bdot" id="bdot"></div>
+  <span id="btxt">「出力を開始」ボタンを押してください</span>
+</div>
+
+<div class="vm">
+  <div class="vlabel">受信音量レベル</div>
+  <div class="vtrack"><div class="vfill" id="vfill"></div></div>
+</div>
+
+<div class="stats">
+  <div><div class="sv" id="cChunk">0</div><div>受信チャンク数</div></div>
+  <div><div class="sv" id="cBuf">—</div><div>バッファ(ms)</div></div>
+</div>
+
+<footer>PoketMic v1.0 — このタブを開いたままPAに接続してください</footer>
+
+<script>
+const socket=io();
+let actx, nextPlay=0;
+const SR=44100, BUF=0.15;
+let chunks=0;
+
+function start(){
+  actx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:SR});
+  nextPlay=actx.currentTime+BUF;
+  socket.emit('register',{type:'output'});
+  document.getElementById('startBtn').disabled=true;
+  document.getElementById('startBtn').textContent='✓ 出力中';
+  document.getElementById('bdot').className='bdot ready';
+  document.getElementById('btxt').textContent='出力中 — 参加者の音声を待っています';
+}
+
+socket.on('audio', data=>{
+  if(!actx) return;
+  const i16=new Int16Array(data.buffer||data);
+  const f32=new Float32Array(i16.length);
+  let mx=0;
+  for(let i=0;i<i16.length;i++){f32[i]=i16[i]/32768;if(Math.abs(f32[i])>mx)mx=Math.abs(f32[i]);}
+  const buf=actx.createBuffer(1,f32.length,SR);
+  buf.copyToChannel(f32,0);
+  const src=actx.createBufferSource();
+  src.buffer=buf; src.connect(actx.destination);
+  const now=actx.currentTime;
+  const at=Math.max(now+0.01,nextPlay);
+  src.start(at);
+  nextPlay=at+buf.duration;
+  chunks++;
+  document.getElementById('cChunk').textContent=chunks;
+  document.getElementById('cBuf').textContent=Math.round((nextPlay-now)*1000);
+  document.getElementById('vfill').style.width=Math.min(100,mx*220)+'%';
+  document.getElementById('bdot').className='bdot recv';
+  setTimeout(()=>{ const b=document.getElementById('bdot'); if(b) b.className='bdot ready'; },250);
+});
+
+// バッファ遅延リセット
+setInterval(()=>{
+  if(actx&&nextPlay<actx.currentTime-0.5) nextPlay=actx.currentTime+BUF;
+},1000);
+</script>
+</body>
+</html>
