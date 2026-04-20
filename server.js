@@ -5,10 +5,10 @@ const path = require('path');
 const os   = require('os');
 
 const app = express();
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 const server = http.createServer(app);
-const io = new Server(server, {
+const io = new Server(server, {h
   maxHttpBufferSize: 2e7,
   pingTimeout: 10000,
   pingInterval: 5000,
